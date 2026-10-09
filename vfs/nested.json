@@ -1,0 +1,28 @@
+{
+  "type": "dir",
+  "children": {
+    "home": {
+      "type": "dir",
+      "children": {
+        "student": {
+          "type": "dir",
+          "children": {
+            "docs": {
+              "type": "dir",
+              "children": {
+                "report.txt": {
+                  "type": "file",
+                  "content": "Rmlyc3QKU2Vjb25kClRoaXJkCkZvdXJ0aAo="
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "hello.txt": {
+      "type": "file",
+      "content": "SGVsbG8gZnJvbSBWRlMK"
+    }
+  }
+}

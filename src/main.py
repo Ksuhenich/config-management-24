@@ -4,9 +4,9 @@ import sys
 from pathlib import Path
 
 try:
-    from .shell import Shell, ShellError
+    from .shell import Shell, ShellError, load_vfs
 except ImportError:
-    from shell import Shell, ShellError
+    from shell import Shell, ShellError, load_vfs
 
 
 def run_script(shell, path):
@@ -40,7 +40,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     print(f"Конфигурация: VFS={args.vfs!r}, script={args.script!r}")
     try:
-        shell = Shell()
+        shell = Shell(load_vfs(args.vfs))
     except ShellError as exc:
         print(exc, file=sys.stderr)
         return 1

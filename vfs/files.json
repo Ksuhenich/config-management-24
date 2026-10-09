@@ -1,0 +1,13 @@
+{
+  "type": "dir",
+  "children": {
+    "readme.txt": {
+      "type": "file",
+      "content": "SGVsbG8KV29ybGQK"
+    },
+    "notes.txt": {
+      "type": "file",
+      "content": "TGluZSAxCkxpbmUgMgpMaW5lIDMK"
+    }
+  }
+}

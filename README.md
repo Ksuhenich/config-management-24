@@ -7,3 +7,5 @@
 Тесты: `python -m unittest discover -s tests -v`
 
 Этап 2: `--vfs`, `--script`, остановка на ошибке.
+
+Этап 3: JSON VFS загружается и проверяется в памяти.
