@@ -1,0 +1,7 @@
+# Эмулятор UNIX — вариант 24
+
+Этап 1: REPL, кавычки, заглушки ls/cd, exit.
+
+Запуск: `python -m src.main`
+
+Тесты: `python -m unittest discover -s tests -v`
