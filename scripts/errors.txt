@@ -1,0 +1,3 @@
+ls
+unknown_command
+touch should_not_exist.txt

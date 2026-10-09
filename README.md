@@ -5,3 +5,5 @@
 Запуск: `python -m src.main`
 
 Тесты: `python -m unittest discover -s tests -v`
+
+Этап 2: `--vfs`, `--script`, остановка на ошибке.

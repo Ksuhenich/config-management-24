@@ -1,0 +1,11 @@
+ls
+find /
+cd home
+ls
+cd student/docs
+tail -n 2 report.txt
+cal 10 2026
+touch new.txt
+ls
+find /
+exit
