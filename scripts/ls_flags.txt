@@ -1,0 +1,11 @@
+ls
+ls -l
+ls -a
+ls -h
+ls -la
+ls -lh
+ls -ah
+ls -lah
+ls -alh
+ls -l -a -h
+ls -lah home

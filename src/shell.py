@@ -100,7 +100,8 @@ class Shell:
             return ""
         name, *values = args
         commands = {
-            "ls": self.ls, "cd": self.cd,
+            "ls": self.ls, "cd": self.cd, "find": self.find,
+            "tail": self.tail, "cal": self.cal, "touch": self.touch,
             "exit": self.exit,
         }
         if name not in commands:
@@ -113,13 +114,135 @@ class Shell:
         if not minimum <= len(args) <= maximum:
             raise ShellError(f"{name}: неверное количество аргументов")
 
+    @staticmethod
+    def human_size(size):
+        """Convert a byte count into a human-readable size."""
+        for unit in ("B", "K", "M", "G", "T"):
+            if size < 1024 or unit == "T":
+                return f"{size}B" if unit == "B" else f"{size:g}{unit}"
+            size /= 1024
+
+    @staticmethod
+    def entry_size(node):
+        """Return file content size in bytes; directories have size zero."""
+        if node["type"] == "dir":
+            return 0
+        return len(base64.b64decode(node["content"]))
+
     def ls(self, args):
-        """Stage 3 placeholder."""
-        return f"ls: {args}"
+        """List VFS entries with -l, -a, -h and combined flags."""
+        flags = set()
+        paths = []
+        for arg in args:
+            if arg.startswith("-") and arg != "-":
+                if arg == "--":
+                    continue
+                if not set(arg[1:]) <= {"l", "a", "h"}:
+                    raise ShellError(f"ls: неизвестный флаг: {arg}")
+                flags.update(arg[1:])
+            else:
+                paths.append(arg)
+        self.count(paths, 0, 1, "ls")
+        path = paths[0] if paths else "."
+        target = self.node(path)
+        if target["type"] == "file":
+            entries = [(posixpath.basename(self.resolve(path)), target)]
+        else:
+            entries = list(target["children"].items())
+            if "a" in flags:
+                entries += [(".", target), ("..", self.node(
+                    posixpath.join(path, "..")))]
+        entries = sorted((name, node) for name, node in entries
+                         if "a" in flags or not name.startswith("."))
+        if "l" not in flags:
+            return "\n".join(name for name, _ in entries)
+        lines = []
+        for name, node in entries:
+            kind = "d" if node["type"] == "dir" else "-"
+            size = self.entry_size(node)
+            displayed = self.human_size(size) if "h" in flags else str(size)
+            lines.append(f"{kind}rwxr-xr-x 1 vfs vfs {displayed:>5} {name}")
+        return "\n".join(lines)
 
     def cd(self, args):
-        """Stage 3 placeholder."""
-        return f"cd: {args}"
+        """Change the current virtual directory."""
+        self.count(args, 0, 1, "cd")
+        path = args[0] if args else "/"
+        if self.node(path)["type"] != "dir":
+            raise ShellError(f"cd: не каталог: {path}")
+        self.cwd = self.resolve(path)
+        return ""
+
+    def find(self, args):
+        """Recursively list paths below a directory or file."""
+        self.count(args, 0, 1, "find")
+        path = self.resolve(args[0] if args else ".")
+        found = []
+
+        def visit(node, current):
+            found.append(current)
+            if node["type"] == "dir":
+                for name, child in sorted(node["children"].items()):
+                    visit(child, posixpath.join(current, name))
+
+        visit(self.node(path), path)
+        return "\n".join(found)
+
+    def tail(self, args):
+        """Display the final ten lines or -n N lines of a text file."""
+        if len(args) == 3 and args[0] == "-n":
+            try:
+                limit = int(args[1])
+            except ValueError as exc:
+                raise ShellError("tail: неверное число строк") from exc
+            path = args[2]
+        else:
+            self.count(args, 1, 1, "tail")
+            limit, path = 10, args[0]
+        if limit < 0:
+            raise ShellError("tail: число строк не может быть отрицательным")
+        node = self.node(path)
+        if node["type"] != "file":
+            raise ShellError("tail: требуется файл")
+        content = base64.b64decode(node["content"])
+        try:
+            lines = content.decode("utf-8").splitlines()
+        except UnicodeDecodeError as exc:
+            raise ShellError("tail: файл не является текстовым UTF-8") from exc
+        return "\n".join(lines[-limit:] if limit else [])
+
+    def cal(self, args):
+        """Show the current month or a specified month and year."""
+        if not args:
+            today = datetime.date.today()
+            month, year = today.month, today.year
+        elif len(args) == 2:
+            try:
+                month, year = map(int, args)
+            except ValueError as exc:
+                raise ShellError("cal: нужны числовые месяц и год") from exc
+        else:
+            raise ShellError("cal: формат cal [месяц год]")
+        if not 1 <= month <= 12 or not 1 <= year <= 9999:
+            raise ShellError("cal: неверная дата")
+        return calendar.month(year, month).rstrip()
+
+    def touch(self, args):
+        """Create a zero-byte virtual file if absent."""
+        self.count(args, 1, 1, "touch")
+        path = self.resolve(args[0])
+        if path == "/":
+            raise ShellError("touch: нельзя изменить корень")
+        parent = self.node(posixpath.dirname(path))
+        if parent["type"] != "dir":
+            raise ShellError("touch: родитель не каталог")
+        name = posixpath.basename(path)
+        existing = parent["children"].get(name)
+        if existing is not None and existing["type"] != "file":
+            raise ShellError("touch: путь является каталогом")
+        if existing is None:
+            parent["children"][name] = {"type": "file", "content": ""}
+        return ""
 
     def exit(self, args):
         """Terminate the interactive shell."""
